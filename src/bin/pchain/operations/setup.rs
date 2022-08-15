@@ -1,3 +1,19 @@
+/*
+ Copyright (c) 2022 ParallelChain Lab
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use home; 
@@ -9,19 +25,25 @@ const PCHAIN_CLI_CONFIG_PATH: &str = ".parallelchain/pchain_cli/config.json";
 // Config.json fields for pchain
 #[derive(Serialize, Deserialize)]
 struct Config {
-    target_address: String,
+    target_url: String,
+    rich_api_url: String,
+    analytics_api_url: String,
     keypair_json_path: String,
 }
 
 pub enum ConfigField {
-    TargetAddress,
+    TargetUrl,
+    RichApiUrl,
+    AnalyticsApiUrl,
     KeypairJSONPath,
 }
 
 impl Into<String> for &ConfigField{
     fn into(self) -> String {
         match self {
-            ConfigField::TargetAddress => "target_address".to_string(),
+            ConfigField::TargetUrl => "target_url".to_string(),
+            ConfigField::RichApiUrl => "rich_api_url".to_string(),
+            ConfigField::AnalyticsApiUrl => "analytics_api_url".to_string(),
             ConfigField::KeypairJSONPath => "keypair_json_path".to_string(),
         }
     }

@@ -1,3 +1,19 @@
+/*
+ Copyright (c) 2022 ParallelChain Lab
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 use std::fs;
 use std::path;
 use std::process;
@@ -5,9 +21,7 @@ use ed25519_dalek::Signer;
 use rand::rngs::OsRng;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use base64;
 use serde::{Serialize, Deserialize};
-use sha2::digest::Key;
 use crate::setup;
 
 const KEYPAIR_LENGTH: usize = 64;
@@ -15,10 +29,10 @@ const PRIVATEKEY_LENGTH: usize = 32;
 const PUBLICKEY_LENGTH: usize = 32;
 
 #[derive(Serialize, Deserialize)]
-struct KeypairJSON {
-    secret_key: String,
-    public_key: String,
-    keypair: String,
+pub struct KeypairJSON {
+    pub secret_key: String,
+    pub public_key: String,
+    pub keypair: String,
 }
 
 // generate keys using OS random number genrator. 
@@ -31,14 +45,14 @@ pub(crate) fn generate_keypair_and_save_as_json() {
     let mut chacha20_rng = ChaCha20Rng::from_rng(&mut osrng).unwrap(); 
    
     let keypair = ed25519_dalek::Keypair::generate(&mut chacha20_rng).to_bytes();
-    let secret_key =  base64::encode(&keypair[0 .. PRIVATEKEY_LENGTH]);
-    let public_key =  base64::encode(&keypair[PUBLICKEY_LENGTH .. KEYPAIR_LENGTH]);
-    let keypair = base64::encode(keypair);
+    let secret_key =  protocol_types::Base64URL::encode(&keypair[0 .. PRIVATEKEY_LENGTH]);
+    let public_key =  protocol_types::Base64URL::encode(&keypair[PUBLICKEY_LENGTH .. KEYPAIR_LENGTH]);
+    let keypair = protocol_types::Base64URL::encode(keypair);
 
     let keypair_json = KeypairJSON {
-        secret_key,
-        public_key,
-        keypair,
+        secret_key: secret_key.to_string(),
+        public_key: public_key.to_string(),
+        keypair: keypair.to_string(),
     };
 
     if path::Path::new(KEYPAIR_FILENAME).exists() {
@@ -62,14 +76,15 @@ pub(crate) fn sign(message: &str) {
             .expect(E_MSG_NOT_FOUND);
         let json = serde_json::from_reader::<_, KeypairJSON>(file)
             .expect(E_MSG_JSON_INVALID_FORMAT);
-        let keypair_bs = base64::decode(json.keypair)
+        let keypair_bs = protocol_types::Base64URL::decode(&json.keypair)
             .expect(E_MSG_JSON_INVALID_FORMAT);
         ed25519_dalek::Keypair::from_bytes(&keypair_bs)
             .expect(E_MSG_JSON_INVALID_FORMAT)
     };
-    let ciphertext = keypair.sign(message.as_bytes()).to_bytes();
-    let ciphertext = base64::encode(ciphertext);
+    let serialized_credentials = protocol_types::Base64URL::decode(&message).unwrap();
+    let ciphertext : ed25519_dalek::Signature = keypair.sign(&serialized_credentials[..]);
+    let ciphertext = protocol_types::Base64URL::encode(ciphertext);
 
     println!("Message: {}", message);
-    println!("Ciphertext: {}", ciphertext);
+    println!("Ciphertext: {}", ciphertext.to_string());
 }
